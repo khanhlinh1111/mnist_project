@@ -14,6 +14,6 @@ env/
 # Ignore log files and temporary files
 *.log
 *.tmp
-
+.gitignore
 # Ignore model checkpoints (optional, if you want to avoid large files)
 *.pth
