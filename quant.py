@@ -57,7 +57,7 @@ def load_calibration_data_from_folder(calib_dir, split, batch_size=4, subset_len
         from torch.utils.data import Subset
         indices = random.sample(range(len(dataset)), subset_len)
         dataset = Subset(dataset, indices)
-    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=2)
+    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=2, collate_fn=collate_fn_train)
     return data_loader
 
 def load_synthetic_calibration_data(data_dir, batch_size=4, subset_len=None, transform=None):
@@ -130,6 +130,7 @@ def quantization(title='Quantizing CRNN Model'):
     model_path = os.path.join(args.model_dir, 'crnn_mnist.pth')
     model.load_state_dict(torch.load(model_path, map_location='cpu'))
     model.eval()
+    model = model.to(device)  # Move to CUDA if available, otherwise CPU
 
     # Create a dummy input for calibration (224x224 image)
     dummy_input = torch.randn([batch_size, 3, 224, 224])
