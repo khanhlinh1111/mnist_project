@@ -1,0 +1,19 @@
+# Ignore calibration dataset and MNIST data folders
+calibration_dataset/
+data/
+
+# Ignore Python cache files and directories
+__pycache__/
+*.py[cod]
+
+# Ignore virtual environment directories (if any)
+venv/
+env/
+.venv/
+
+# Ignore log files and temporary files
+*.log
+*.tmp
+
+# Ignore model checkpoints (optional, if you want to avoid large files)
+*.pth
