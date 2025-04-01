@@ -126,7 +126,7 @@ def quantization(title='Quantizing CRNN Model'):
         subset_len = 1
 
     # Load the CRNN model
-    model = CRNN(num_classes=11, conv_channels=256, num_conv_layers=3, kernel_size=3).to(device)
+    model = CRNN(num_classes=11, conv_channels=256, num_conv_layers=3).to(device)
     model.pool = nn.AdaptiveAvgPool2d((1, 56)) # Ensure this matches training
 
     model_path = os.path.join(args.model_dir, 'crnn_conv_mnist.pth')

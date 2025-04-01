@@ -19,7 +19,7 @@ transform = transforms.Compose([
                          std=[0.229, 0.224, 0.225])
 ])
 
-def main(epochs=1, train_subset_size=None, eval_subset_size=None, num_classes=11, conv_channels=256, num_conv_layers=3, kernel_size=3):
+def main(epochs=1, train_subset_size=None, eval_subset_size=None, num_classes=11, conv_channels=256, num_conv_layers=3):
     """
     Main function to train and evaluate the CRNN model.
 
@@ -31,7 +31,6 @@ def main(epochs=1, train_subset_size=None, eval_subset_size=None, num_classes=11
         num_classes (int, optional): Number of classes for the CRNN model. Defaults to 11.
         conv_channels (int, optional): Number of channels in the convolutional layers. Defaults to 256.
         num_conv_layers (int, optional): Number of 1D convolutional layers. Defaults to 3.
-        kernel_size (int, optional): Kernel size of the 1D convolutional layers. Defaults to 3.
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
@@ -112,7 +111,7 @@ def main(epochs=1, train_subset_size=None, eval_subset_size=None, num_classes=11
                                     collate_fn=collate_fn_eval_used, num_workers=2)
 
     # Initialize model, optimizer, and CTC loss (blank index=10)
-    model = CRNN(num_classes=num_classes, conv_channels=conv_channels, num_conv_layers=num_conv_layers, kernel_size=kernel_size).to(device)
+    model = CRNN(num_classes=num_classes, conv_channels=conv_channels, num_conv_layers=num_conv_layers).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     criterion = torch.nn.CTCLoss(blank=10, zero_infinity=True)
 
@@ -154,4 +153,4 @@ if __name__ == '__main__':
     # main()
 
     # To train on the entire dataset with custom hyperparameters:
-    # main(num_classes=11, conv_channels=512, num_conv_layers=4, kernel_size=5)
+    # main(num_classes=11, conv_channels=512, num_conv_layers=4)
