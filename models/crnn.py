@@ -1,4 +1,3 @@
-# models/crnn.py
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -13,8 +12,11 @@ class CRNN(nn.Module):
         kernel_size: Kernel size of the 1D convolutional layers
         """
         super(CRNN, self).__init__()
-        # Load a pretrained ResNet-50 and remove its last two layers (avgpool and fc)
-        self.cnn = nn.Sequential(*list(resnet50(pretrained=False).children())[:-2])
+        # Load a pretrained ResNet-50
+        resnet = resnet50(pretrained=False)
+        # Remove the last two layers (avgpool and fc)
+        self.cnn = nn.Sequential(*list(resnet.children())[:-2])
+
         # Reduce channels from 2048 to 256 with a 1x1 convolution
         self.conv_reduce = nn.Conv2d(2048, conv_channels, kernel_size=1)
         # Adaptive pooling: force height dimension to 1 while keeping width variable
@@ -35,18 +37,18 @@ class CRNN(nn.Module):
 
     def forward(self, x):
         # x: (batch, 3, H, W)
-        features = self.cnn(x)                  # -> (batch, 2048, H', W')
+        features = self.cnn(x)          # -> (batch, 2048, H', W')
         features = self.conv_reduce(features)   # -> (batch, 256, H', W')
-        features = self.pool(features)            # -> (batch, 256, 1, W')
-        features = features.squeeze(2)            # -> (batch, 256, W')
-        features = features.permute(0, 2, 1)      # -> (batch, W', 256)
+        features = self.pool(features)       # -> (batch, 256, 1, W')
+        features = features.squeeze(2)       # -> (batch, 256, W')
+        features = features.permute(0, 2, 1)     # -> (batch, W', 256)
 
         # Apply sequential convolutional layers
-        features = features.permute(0, 2, 1)      # -> (batch, 256, W')
+        features = features.permute(0, 2, 1)     # -> (batch, 256, W')
         conv_out = self.sequential(features)    # -> (batch, 256, W')
-        conv_out = conv_out.permute(2, 0, 1)      # -> (W', batch, 256)
+        conv_out = conv_out.permute(2, 0, 1)     # -> (W', batch, 256)
 
-        output = self.fc(conv_out)              # -> (W', batch, num_classes)
+        output = self.fc(conv_out)            # -> (W', batch, num_classes)
         return output
 
 def ctc_greedy_decoder(output, blank=10):

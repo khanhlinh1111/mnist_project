@@ -79,7 +79,7 @@ def load_synthetic_calibration_data(data_dir, batch_size=4, subset_len=None, tra
         indices = random.sample(range(len(dataset)), subset_len)
         dataset = Subset(dataset, indices)
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False,
-                             collate_fn=collate_fn_train, num_workers=2)
+                                        collate_fn=collate_fn_train, num_workers=2)
     return data_loader
 
 def evaluate(model, val_loader, criterion):
@@ -125,14 +125,35 @@ def quantization(title='Quantizing CRNN Model'):
         batch_size = 1
         subset_len = 1
 
-    # Load the CRNN model and its trained weights.
-    model = CRNN(num_classes=11, hidden_size=256, num_layers=2).cpu()
-    model_path = os.path.join(args.model_dir, 'crnn_mnist.pth')
-    model.load_state_dict(torch.load(model_path, map_location='cpu'))
+    # Load the CRNN model
+    model = CRNN(num_classes=11, conv_channels=256, num_conv_layers=3, kernel_size=3).to(device)
+    model.pool = nn.AdaptiveAvgPool2d((1, 56)) # Ensure this matches training
+
+    model_path = os.path.join(args.model_dir, 'crnn_conv_mnist.pth')
+    checkpoint = torch.load(model_path, map_location='cpu')
+
+    if 'model_state_dict' in checkpoint:
+        state_dict = checkpoint['model_state_dict']
+    else:
+        state_dict = checkpoint
+
+    try:
+        model.load_state_dict(state_dict)
+        print("Successfully loaded the entire state dictionary.")
+    except RuntimeError as e:
+        print(f"Error loading the state dict: {e}")
+        print("Trying to load with strict=False to identify mismatches...")
+        try:
+            model.load_state_dict(state_dict, strict=False)
+            print("Successfully loaded the state dictionary with strict=False.")
+        except RuntimeError as e_strict_false:
+            print(f"Error loading state dict even with strict=False: {e_strict_false}")
+            return
+
     model.eval()
     model = model.to(device)  # Move to CUDA if available, otherwise CPU
 
-    # Create a dummy input for calibration (224x224 image)
+    # Create a dummy input for calibration (adjust width to 56 to match the pooling in your crnn.py)
     dummy_input = torch.randn([batch_size, 3, 224, 224])
 
     if quant_mode == 'float':
@@ -146,7 +167,7 @@ def quantization(title='Quantizing CRNN Model'):
             return
     else:
         quantizer = torch_quantizer(quant_mode, model, (dummy_input,), device=device,
-                                      quant_config_file=config_file, target=target)
+                                    quant_config_file=config_file, target=target)
         quant_model = quantizer.quant_model
 
     # Define the transformation used during training/quantization.
@@ -163,15 +184,15 @@ def quantization(title='Quantizing CRNN Model'):
     if os.path.exists(calib_path):
         print(f"Loading calibration data from exported calibration_dataset/{calib_split} ...")
         val_loader = load_calibration_data_from_folder(calib_dir, calib_split,
-                                                       batch_size=batch_size,
-                                                       subset_len=subset_len,
-                                                       transform=transform)
+                                                        batch_size=batch_size,
+                                                        subset_len=subset_len,
+                                                        transform=transform)
     else:
         print("Exported calibration dataset not found. Generating synthetic calibration data...")
         val_loader = load_synthetic_calibration_data(data_dir,
-                                                     batch_size=batch_size,
-                                                     subset_len=subset_len,
-                                                     transform=transform)
+                                                        batch_size=batch_size,
+                                                        subset_len=subset_len,
+                                                        transform=transform)
 
     # Use CTCLoss for evaluation (consistent with training)
     criterion = nn.CTCLoss(blank=10, zero_infinity=True).to(device)
